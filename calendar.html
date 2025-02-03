@@ -21,6 +21,7 @@
             height: 100vh;
             padding: 0;
             margin: 0;
+            overflow-x: hidden;
         }
 
         /* 标题样式 */
@@ -48,6 +49,7 @@
             max-width: 600px;
             margin-top: 100px;
             text-align: center;
+            justify-content: center;
         }
 
         /* 星期名称样式 */
@@ -77,6 +79,7 @@
             justify-content: center;
             align-items: center;
             height: 50px;
+            position: relative;
         }
 
         .day:hover {
@@ -92,6 +95,23 @@
             box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
             font-size: 24px;
             cursor: default;
+        }
+
+        /* 加载动画 */
+        .loading {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4CAF50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        /* 旋转动画 */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         /* 使按钮和星期都居中对齐 */
@@ -120,6 +140,8 @@
         const urlParams = new URLSearchParams(window.location.search);
         const month = parseInt(urlParams.get('month')); // 获取URL中的月份
         const year = 2025;
+        let currentAudio = null; // 当前正在播放的音频
+        let currentDayButton = null; // 当前正在播放的日期按钮
 
         // 设置标题
         const monthNames = [
@@ -166,16 +188,48 @@
                             dayButton.classList.add('saturday'); // 周六加特殊样式
                         }
                         dayButton.textContent = dayNumber;
-
-                        // 点击日期播放音频
+                        
+                        // 音频链接
+                        const audioUrl = `https://hjpiano777.us.kg/audio/${year}-${String(month).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}.ogg`;
                         dayButton.onclick = function() {
                             if (j !== 6) { // 如果是周六，点击无效
-                                const audioUrl = `https://hjpiano777.us.kg/audio/2025-${month.toString().padStart(2, '0')}-${dayNumber.toString().padStart(2, '0')}.ogg`;
-                                const audio = new Audio(audioUrl);
-                                audio.play();
+                                // 停止之前的音频播放
+                                if (currentAudio) {
+                                    currentAudio.pause(); // 停止音频
+                                    currentAudio.currentTime = 0; // 重置音频时间
+                                    if (currentDayButton) {
+                                        currentDayButton.classList.remove('playing');
+                                    }
+                                }
+
+                                // 移除之前的转圈效果
+                                if (currentDayButton) {
+                                    const previousLoading = currentDayButton.querySelector('.loading');
+                                    if (previousLoading) {
+                                        previousLoading.remove();
+                                    }
+                                }
+
+                                // 添加加载动画
+                                const loadingCircle = document.createElement('div');
+                                loadingCircle.classList.add('loading');
+                                dayButton.appendChild(loadingCircle);
+
+                                // 播放新音频
+                                currentAudio = new Audio(audioUrl);
+                                currentAudio.play();
+
+                                // 更新正在播放的按钮
+                                currentDayButton = dayButton;
+                                currentDayButton.classList.add('playing');
+
+                                // 播放完后移除加载动画
+                                currentAudio.onended = function() {
+                                    loadingCircle.remove();
+                                    currentDayButton.classList.remove('playing');
+                                };
                             }
                         };
-
                         calendarContainer.appendChild(dayButton);
                         dayNumber++;
                     }
