@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">2025圣经阅读 - 日历</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            height: 100vh;
+            padding: 0;
+            margin: 0;
+        }
+
+        /* 标题样式 */
+        .header {
+            background-color: #4CAF50;
+            color: white;
+            font-size: 28px;
+            padding: 20px;
+            width: 100%;
+            text-align: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+        }
+
+        /* 日历容器样式 */
+        .calendar-container {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr); /* 7列 */
+            grid-gap: 10px;
+            padding: 20px;
+            width: 90%;
+            max-width: 600px;
+            margin-top: 100px;
+            text-align: center;
+        }
+
+        /* 星期名称样式 */
+        .day-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4CAF50;
+            padding: 10px;
+            background-color: #e7f5e2;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        /* 单个日期按钮样式 */
+        .day {
+            background-color: white;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 22px;
+            color: #4CAF50;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 50px;
+        }
+
+        .day:hover {
+            background-color: #e7f5e2;
+        }
+
+        /* 周六样式 */
+        .saturday {
+            background-color: #FFD700;
+            color: #4B0082;
+            font-weight: bold;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+            font-size: 24px;
+            cursor: default;
+        }
+
+        /* 使按钮和星期都居中对齐 */
+        .calendar-container > div {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+
+        @media (max-width: 600px) {
+            .day {
+                font-size: 20px;
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header" id="month-header"></div>
+
+    <div id="calendar-container" class="calendar-container"></div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const month = parseInt(urlParams.get('month')); // 获取URL中的月份
+        const year = 2025;
+
+        // 设置标题
+        const monthNames = [
+            '1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'
+        ];
+        document.getElementById('month-header').textContent = `${monthNames[month - 1]} 圣经阅读`;
+
+        // 获取每个月的天数和起始日期
+        function getMonthData(year, month) {
+            const date = new Date(year, month - 1, 1); // 获取该月的第一天
+            const startDay = date.getDay(); // 获取第一天是星期几
+            const daysInMonth = new Date(year, month, 0).getDate(); // 获取该月的总天数
+            return { startDay, daysInMonth };
+        }
+
+        // 渲染日历
+        function renderCalendar() {
+            const { startDay, daysInMonth } = getMonthData(year, month);
+            const calendarContainer = document.getElementById('calendar-container');
+            
+            // 清空日历容器
+            calendarContainer.innerHTML = '';
+
+            // 星期名称
+            const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+            weekdays.forEach(day => {
+                const dayName = document.createElement('div');
+                dayName.classList.add('day-name');
+                dayName.textContent = day;
+                calendarContainer.appendChild(dayName);
+            });
+
+            // 渲染日期
+            let dayNumber = 1;
+            for (let i = 0; i < 6; i++) { // 6行
+                for (let j = 0; j < 7; j++) { // 7列
+                    if (i === 0 && j < startDay) {
+                        const emptyCell = document.createElement('div');
+                        calendarContainer.appendChild(emptyCell);
+                    } else if (dayNumber <= daysInMonth) {
+                        const dayButton = document.createElement('div');
+                        dayButton.classList.add('day');
+                        if (j === 6) {
+                            dayButton.classList.add('saturday'); // 周六加特殊样式
+                        }
+                        dayButton.textContent = dayNumber;
+
+                        // 点击日期播放音频
+                        dayButton.onclick = function() {
+                            if (j !== 6) { // 如果是周六，点击无效
+                                const audioUrl = `https://hjpiano777.us.kg/BYP1/audio/2025-${month.toString().padStart(2, '0')}-${dayNumber.toString().padStart(2, '0')}.ogg`;
+                                const audio = new Audio(audioUrl);
+                                audio.play();
+                            }
+                        };
+
+                        calendarContainer.appendChild(dayButton);
+                        dayNumber++;
+                    }
+                }
+            }
+        }
+
+        renderCalendar();
+    </script>
+
+</body>
+</html>
