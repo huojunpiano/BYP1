@@ -170,7 +170,7 @@
                         // 点击日期播放音频
                         dayButton.onclick = function() {
                             if (j !== 6) { // 如果是周六，点击无效
-                                const audioUrl = `https://hjpiano777.us.kg/BYP1/audio/2025-${month.toString().padStart(2, '0')}-${dayNumber.toString().padStart(2, '0')}.ogg`;
+                                const audioUrl = `https://hjpiano777.us.kg/audio/2025-${month.toString().padStart(2, '0')}-${dayNumber.toString().padStart(2, '0')}.ogg`;
                                 const audio = new Audio(audioUrl);
                                 audio.play();
                             }
