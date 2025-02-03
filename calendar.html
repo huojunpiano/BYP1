@@ -46,10 +46,11 @@
             grid-gap: 10px;
             padding: 20px;
             width: 90%;
-            max-width: 600px;
+            max-width: 100%; /* 设置为100%以确保日历适应屏幕 */
             margin-top: 100px;
             text-align: center;
             justify-content: center;
+            overflow-x: auto; /* 允许水平滚动 */
         }
 
         /* 星期名称样式 */
@@ -124,10 +125,11 @@
 
         @media (max-width: 600px) {
             .day {
-                font-size: 20px;
-                padding: 15px;
+                font-size: 18px; /* 更小的按钮字体大小 */
+                padding: 10px; /* 调整按钮的间距 */
             }
         }
+
     </style>
 </head>
 <body>
@@ -140,8 +142,6 @@
         const urlParams = new URLSearchParams(window.location.search);
         const month = parseInt(urlParams.get('month')); // 获取URL中的月份
         const year = 2025;
-        let currentAudio = null; // 当前正在播放的音频
-        let currentDayButton = null; // 当前正在播放的日期按钮
 
         // 设置标题
         const monthNames = [
@@ -193,40 +193,18 @@
                         const audioUrl = `https://hjpiano777.us.kg/audio/${year}-${String(month).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}.ogg`;
                         dayButton.onclick = function() {
                             if (j !== 6) { // 如果是周六，点击无效
-                                // 停止之前的音频播放
-                                if (currentAudio) {
-                                    currentAudio.pause(); // 停止音频
-                                    currentAudio.currentTime = 0; // 重置音频时间
-                                    if (currentDayButton) {
-                                        currentDayButton.classList.remove('playing');
-                                    }
-                                }
-
-                                // 移除之前的转圈效果
-                                if (currentDayButton) {
-                                    const previousLoading = currentDayButton.querySelector('.loading');
-                                    if (previousLoading) {
-                                        previousLoading.remove();
-                                    }
-                                }
-
                                 // 添加加载动画
                                 const loadingCircle = document.createElement('div');
                                 loadingCircle.classList.add('loading');
                                 dayButton.appendChild(loadingCircle);
 
-                                // 播放新音频
-                                currentAudio = new Audio(audioUrl);
-                                currentAudio.play();
-
-                                // 更新正在播放的按钮
-                                currentDayButton = dayButton;
-                                currentDayButton.classList.add('playing');
+                                // 播放音频
+                                const audio = new Audio(audioUrl);
+                                audio.play();
 
                                 // 播放完后移除加载动画
-                                currentAudio.onended = function() {
+                                audio.onended = function() {
                                     loadingCircle.remove();
-                                    currentDayButton.classList.remove('playing');
                                 };
                             }
                         };
