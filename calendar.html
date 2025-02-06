@@ -2,13 +2,14 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title id="page-title">2025圣经阅读 - 日历</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
@@ -18,47 +19,76 @@
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
-            height: 100vh;
+            min-height: 100vh;
             padding: 0;
             margin: 0;
             overflow-x: hidden;
+            padding-bottom: 200px;
+        }
+
+        /* 返回按钮样式 */
+        .back-btn {
+            position: fixed;
+            height: 64px; /* 与标题栏等高 */
+            width: 50px;
+            left: 0;
+            top: 0;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 11;
+            padding: 0;
+        }
+
+        .back-btn:active {
+            background-color: rgba(255, 255, 255, 0.1);
         }
 
         /* 标题样式 */
         .header {
             background-color: #4CAF50;
             color: white;
-            font-size: 28px;
+            font-size: 24px;
             padding: 20px;
             width: 100%;
+            height: 64px;
             text-align: center;
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding-left: 50px; /* 为返回按钮留出空间 */
+            padding-right: 50px; /* 保持对称 */
         }
 
         /* 日历容器样式 */
         .calendar-container {
             display: grid;
-            grid-template-columns: repeat(7, 1fr); /* 7列 */
-            grid-gap: 10px;
-            padding: 20px;
-            width: 90%;
-            max-width: 100%; /* 设置为100%以确保日历适应屏幕 */
-            margin-top: 100px;
+            grid-template-columns: repeat(7, 1fr);
+            grid-gap: 8px;
+            padding: 15px;
+            width: 100%;
+            max-width: 100%;
+            margin-top: 80px;
             text-align: center;
             justify-content: center;
-            overflow-x: auto; /* 允许水平滚动 */
         }
 
         /* 星期名称样式 */
         .day-name {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
             color: #4CAF50;
-            padding: 10px;
+            padding: 8px;
             background-color: #e7f5e2;
             border-radius: 8px;
             display: flex;
@@ -70,21 +100,25 @@
         /* 单个日期按钮样式 */
         .day {
             background-color: white;
-            padding: 15px;
+            min-width: 45px;
+            min-height: 45px;
             border-radius: 10px;
-            font-size: 22px;
+            font-size: 20px;
             color: #4CAF50;
             cursor: pointer;
             transition: background-color 0.3s ease;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 50px;
             position: relative;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
         }
 
-        .day:hover {
+        .day:active {
             background-color: #e7f5e2;
+            transform: scale(0.95);
         }
 
         /* 周六样式 */
@@ -92,80 +126,319 @@
             background-color: #FFD700;
             color: #4B0082;
             font-weight: bold;
-            border-radius: 10px;
             box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
-            font-size: 24px;
-            cursor: default;
+            font-size: 22px;
         }
 
-        /* 加载动画 */
+        /* 加载动画样式 */
         .loading {
             position: absolute;
-            width: 30px;
-            height: 30px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #4CAF50;
+            width: 25px;
+            height: 25px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4CAF50;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
 
-        /* 旋转动画 */
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
 
-        /* 使按钮和星期都居中对齐 */
-        .calendar-container > div {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100%;
+        /* 加载提示文字样式 */
+        .loading-tip {
+            position: fixed;
+            bottom: 180px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 1000;
         }
 
-        @media (max-width: 600px) {
+        /* 播放控制区域样式 */
+        .playback-control {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            background: white;
+            padding: 15px;
+            border-radius: 15px 15px 0 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+
+        .control-top {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .play-pause-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            font-size: 24px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .play-pause-btn:active {
+            transform: scale(0.95);
+        }
+
+        .speed-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .speed-btn {
+            padding: 8px 15px;
+            border: 1px solid #4CAF50;
+            border-radius: 15px;
+            background: white;
+            color: #4CAF50;
+            cursor: pointer;
+            font-size: 16px;
+            min-width: 60px;
+        }
+
+        .speed-btn.active {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .time-display {
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+            margin: 5px 0;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            touch-action: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .loading-progress {
+            position: absolute;
+            height: 100%;
+            background: #e7f5e2;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .playing-progress {
+            position: absolute;
+            height: 100%;
+            background: #4CAF50;
+            width: 0%;
+            transition: width 0.1s;
+        }
+
+        .playing {
+            background-color: #e7f5e2;
+        }
+
+        @media (max-width: 360px) {
             .day {
-                font-size: 18px; /* 更小的按钮字体大小 */
-                padding: 10px; /* 调整按钮的间距 */
+                font-size: 18px;
+                min-width: 40px;
+                min-height: 40px;
+            }
+
+            .speed-btn {
+                padding: 6px 12px;
+                font-size: 14px;
+                min-width: 50px;
             }
         }
-
     </style>
 </head>
 <body>
-
+    <button class="back-btn" onclick="window.location.href='index.html'">←</button>
     <div class="header" id="month-header"></div>
-
     <div id="calendar-container" class="calendar-container"></div>
+    
+    <div class="playback-control">
+        <div class="control-top">
+            <button class="play-pause-btn">
+                <i class="play-icon">▶</i>
+            </button>
+            <div class="speed-buttons">
+                <button class="speed-btn" data-speed="0.8">0.8x</button>
+                <button class="speed-btn" data-speed="0.9">0.9x</button>
+                <button class="speed-btn active" data-speed="1.0">1.0x</button>
+                <button class="speed-btn" data-speed="1.1">1.1x</button>
+            </div>
+        </div>
+        <div class="time-display">00:00 / 00:00</div>
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="loading-progress"></div>
+                <div class="playing-progress"></div>
+            </div>
+        </div>
+    </div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
-        const month = parseInt(urlParams.get('month')); // 获取URL中的月份
+        const month = parseInt(urlParams.get('month'));
         const year = 2025;
 
+        let currentAudio = null;
+        let currentButton = null;
+        let isPlaying = false;
+        let lastPlaybackRate = localStorage.getItem('lastPlaybackRate') || '1.0';
+
         // 设置标题
-        const monthNames = [
-            '1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'
-        ];
+        const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
         document.getElementById('month-header').textContent = `${monthNames[month - 1]} 圣经阅读`;
 
-        // 获取每个月的天数和起始日期
+        // 播放控制元素
+        const playPauseBtn = document.querySelector('.play-pause-btn');
+        const speedButtons = document.querySelectorAll('.speed-btn');
+        const progressBar = document.querySelector('.progress-bar');
+        const loadingProgress = document.querySelector('.loading-progress');
+        const playingProgress = document.querySelector('.playing-progress');
+        const timeDisplay = document.querySelector('.time-display');
+
+        // 设置上次使用的播放速度
+        document.querySelector(`.speed-btn[data-speed="${lastPlaybackRate}"]`)?.classList.add('active');
+
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.floor(seconds % 60);
+            return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+        }
+
+        function updateTimeDisplay() {
+            if (currentAudio && !isNaN(currentAudio.duration)) {
+                timeDisplay.textContent = `${formatTime(currentAudio.currentTime)} / ${formatTime(currentAudio.duration)}`;
+            }
+        }
+
         function getMonthData(year, month) {
-            const date = new Date(year, month - 1, 1); // 获取该月的第一天
-            const startDay = date.getDay(); // 获取第一天是星期几
-            const daysInMonth = new Date(year, month, 0).getDate(); // 获取该月的总天数
+            const date = new Date(year, month - 1, 1);
+            const startDay = date.getDay();
+            const daysInMonth = new Date(year, month, 0).getDate();
             return { startDay, daysInMonth };
         }
 
-        // 渲染日历
+        function updatePlayButton(playing) {
+            playPauseBtn.innerHTML = playing ? '❚❚' : '▶';
+            isPlaying = playing;
+        }
+
+        function stopCurrentAudio() {
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+                updatePlayButton(false);
+            }
+            if (currentButton) {
+                currentButton.classList.remove('playing');
+                const loadingElement = currentButton.querySelector('.loading');
+                if (loadingElement) {
+                    loadingElement.remove();
+                }
+            }
+            const loadingTipElement = document.querySelector('.loading-tip');
+            if (loadingTipElement) {
+                loadingTipElement.remove();
+            }
+            loadingProgress.style.width = '0%';
+            playingProgress.style.width = '0%';
+            timeDisplay.textContent = '00:00 / 00:00';
+        }
+
+        // 播放控制
+        playPauseBtn.addEventListener('click', () => {
+            if (currentAudio) {
+                if (isPlaying) {
+                    currentAudio.pause();
+                    updatePlayButton(false);
+                } else {
+                    currentAudio.play();
+                    updatePlayButton(true);
+                }
+            }
+        });
+
+        // 倍速控制
+        speedButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                speedButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                const speed = button.dataset.speed;
+                if (currentAudio) {
+                    currentAudio.playbackRate = parseFloat(speed);
+                }
+                localStorage.setItem('lastPlaybackRate', speed);
+            });
+        });
+
+        // 进度条触摸控制
+        let isDragging = false;
+
+        progressBar.addEventListener('touchstart', handleTouchProgress);
+        progressBar.addEventListener('touchmove', handleTouchProgress);
+        progressBar.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+
+        function handleTouchProgress(e) {
+            e.preventDefault();
+            if (currentAudio) {
+                const rect = progressBar.getBoundingClientRect();
+                const touch = e.touches[0];
+                let pos = (touch.clientX - rect.left) / rect.width;
+                pos = Math.max(0, Math.min(1, pos));
+                
+                if (e.type === 'touchstart') {
+                    isDragging = true;
+                }
+                
+                if (isDragging) {
+                    currentAudio.currentTime = currentAudio.duration * pos;
+                    playingProgress.style.width = `${pos * 100}%`;
+                    updateTimeDisplay();
+                }
+            }
+        }
+
         function renderCalendar() {
             const { startDay, daysInMonth } = getMonthData(year, month);
             const calendarContainer = document.getElementById('calendar-container');
             
-            // 清空日历容器
             calendarContainer.innerHTML = '';
 
-            // 星期名称
             const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
             weekdays.forEach(day => {
                 const dayName = document.createElement('div');
@@ -174,10 +447,9 @@
                 calendarContainer.appendChild(dayName);
             });
 
-            // 渲染日期
             let dayNumber = 1;
-            for (let i = 0; i < 6; i++) { // 6行
-                for (let j = 0; j < 7; j++) { // 7列
+            for (let i = 0; i < 6; i++) {
+                for (let j = 0; j < 7; j++) {
                     if (i === 0 && j < startDay) {
                         const emptyCell = document.createElement('div');
                         calendarContainer.appendChild(emptyCell);
@@ -185,27 +457,80 @@
                         const dayButton = document.createElement('div');
                         dayButton.classList.add('day');
                         if (j === 6) {
-                            dayButton.classList.add('saturday'); // 周六加特殊样式
+                            dayButton.classList.add('saturday');
                         }
                         dayButton.textContent = dayNumber;
                         
-                        // 音频链接
                         const audioUrl = `https://hjpiano777.us.kg/audio/${year}-${String(month).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}.ogg`;
                         dayButton.onclick = function() {
-                            if (j !== 6) { // 如果是周六，点击无效
-                                // 添加加载动画
+                            if (j !== 6) {
+                                stopCurrentAudio();
+                                
+                                currentButton = dayButton;
+                                currentButton.classList.add('playing');
+                                
                                 const loadingCircle = document.createElement('div');
                                 loadingCircle.classList.add('loading');
                                 dayButton.appendChild(loadingCircle);
 
-                                // 播放音频
-                                const audio = new Audio(audioUrl);
-                                audio.play();
+                                const loadingTip = document.createElement('div');
+                                loadingTip.classList.add('loading-tip');
+                                loadingTip.textContent = '稍等片刻，正在加载...';
+                                document.body.appendChild(loadingTip);
+                                
+                                currentAudio = new Audio(audioUrl);
+                                
+                                const activeSpeed = document.querySelector('.speed-btn.active');
+                                currentAudio.playbackRate = parseFloat(activeSpeed.dataset.speed);
 
-                                // 播放完后移除加载动画
-                                audio.onended = function() {
-                                    loadingCircle.remove();
-                                };
+                                currentAudio.addEventListener('progress', () => {
+                                    if (currentAudio.buffered.length > 0) {
+                                        const loadedPercentage = (currentAudio.buffered.end(0) / currentAudio.duration) * 100;
+                                        loadingProgress.style.width = `${loadedPercentage}%`;
+                                    }
+                                });
+
+                                currentAudio.addEventListener('canplay', () => {
+                                    const loadingElement = dayButton.querySelector('.loading');
+                                    if (loadingElement) {
+                                        loadingElement.remove();
+                                    }
+                                    const loadingTipElement = document.querySelector('.loading-tip');
+                                    if (loadingTipElement) {
+                                        loadingTipElement.remove();
+                                    }
+                                    
+                                    currentAudio.play();
+                                    updatePlayButton(true);
+                                    updateTimeDisplay();
+                                });
+
+                                currentAudio.addEventListener('timeupdate', () => {
+                                    if (!isDragging) {
+                                        const playedPercentage = (currentAudio.currentTime / currentAudio.duration) * 100;
+                                        playingProgress.style.width = `${playedPercentage}%`;
+                                        updateTimeDisplay();
+                                    }
+                                });
+
+                                currentAudio.addEventListener('ended', () => {
+                                    updatePlayButton(false);
+                                    playingProgress.style.width = '0%';
+                                    currentButton.classList.remove('playing');
+                                    timeDisplay.textContent = '00:00 / 00:00';
+                                });
+
+                                currentAudio.addEventListener('error', () => {
+                                    const loadingElement = dayButton.querySelector('.loading');
+                                    if (loadingElement) {
+                                        loadingElement.remove();
+                                    }
+                                    const loadingTipElement = document.querySelector('.loading-tip');
+                                    if (loadingTipElement) {
+                                        loadingTipElement.remove();
+                                    }
+                                    alert('音频加载失败，请稍后重试');
+                                });
                             }
                         };
                         calendarContainer.appendChild(dayButton);
@@ -216,7 +541,22 @@
         }
 
         renderCalendar();
-    </script>
 
+        // 添加键盘控制
+        document.addEventListener('keydown', (e) => {
+            if (currentAudio) {
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                    if (isPlaying) {
+                        currentAudio.pause();
+                        updatePlayButton(false);
+                    } else {
+                        currentAudio.play();
+                        updatePlayButton(true);
+                    }
+                }
+            }
+        });
+    </script>
 </body>
 </html>

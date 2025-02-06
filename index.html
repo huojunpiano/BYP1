@@ -2,14 +2,14 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>2025圣经阅读</title>
     <style>
-        /* 重置默认样式 */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
@@ -19,16 +19,17 @@
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
-            height: 100vh;
+            min-height: 100vh;
             padding: 0;
             margin: 0;
+            overflow-x: hidden;
         }
 
         /* 标题样式 */
         .header {
             background-color: #4CAF50;
             color: white;
-            font-size: 28px;
+            font-size: 24px;
             padding: 20px;
             width: 100%;
             text-align: center;
@@ -37,11 +38,12 @@
             left: 0;
             right: 0;
             z-index: 10;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
         /* 内容容器样式 */
         .content {
-            margin-top: 100px; /* 为了给固定标题留出空间 */
+            margin-top: 100px;
             padding: 20px;
             width: 100%;
             display: flex;
@@ -56,46 +58,135 @@
             width: 100%;
             max-width: 480px;
             justify-items: center;
+            padding: 0 15px;
         }
 
         /* 单个按钮样式 */
         .month {
             background-color: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            font-size: 24px;
-            color: #4CAF50;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
             width: 100%;
-            max-width: 120px;
-            text-align: center;
+            aspect-ratio: 1;
+            border-radius: 15px;
+            font-size: 28px;
+            color: #4CAF50;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            user-select: none;
+            position: relative;
+            overflow: hidden;
         }
 
-        .month:hover {
+        .month::after {
+            content: '月';
+            font-size: 14px;
+            position: absolute;
+            bottom: 10px;
+            color: #666;
+        }
+
+        .month:active {
+            transform: scale(0.95);
             background-color: #e7f5e2;
         }
 
-        /* 响应式设计，适配手机屏幕 */
-        @media (max-width: 600px) {
-            .header {
-                font-size: 24px;
-                padding: 15px;
-            }
+        /* 波纹效果 */
+        .ripple {
+            position: absolute;
+            background: rgba(76, 175, 80, 0.3);
+            border-radius: 50%;
+            transform: scale(0);
+            animation: ripple 0.6s linear;
+            pointer-events: none;
+        }
 
-            .month {
-                font-size: 26px;
-                padding: 25px;
+    /* 提示框样式 */
+    .browser-tip {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        z-index: 1000;
+        width: 80%;
+        max-width: 300px;
+        display: none;
+        font-size: 16px;
+        line-height: 1.5;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+
+    .browser-tip-arrow {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        width: 30px;
+        height: 30px;
+        border: 2px solid white;
+        border-radius: 50%;
+        animation: bounce 1s infinite;
+    }
+
+    @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-5px); }
+    }
+
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
             }
         }
 
+        /* 响应式设计 */
+        @media (max-width: 360px) {
+            .month {
+                font-size: 24px;
+            }
+            
+            .month::after {
+                font-size: 12px;
+                bottom: 8px;
+            }
+
+            .header {
+                font-size: 20px;
+                padding: 15px;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .month-container {
+                max-width: 600px;
+                gap: 20px;
+            }
+
+            .month {
+                font-size: 32px;
+            }
+        }
     </style>
 </head>
 <body>
-
     <!-- 页面标题 -->
     <div class="header">2025圣经阅读</div>
+
+    <!-- 在 body 中添加提示框 -->
+    <div class="browser-tip" id="browserTip">
+        <div>为保证最佳体验效果</div>
+        <div>请点击右上角 ··· </div>
+        <div>选择"在浏览器中打开"</div>
+        <div>并收藏本页面</div>
+        <div class="browser-tip-arrow">↗</div>
+    </div>
 
     <!-- 月份按钮容器 -->
     <div class="content">
@@ -116,11 +207,44 @@
     </div>
 
     <script>
+ // 检测是否在微信浏览器中打开
+    function isWeixinBrowser(){
+        var ua = navigator.userAgent.toLowerCase();
+        return ua.match(/MicroMessenger/i) == "micromessenger";
+    }
+
+    // 页面加载完成后检查
+    window.onload = function() {
+        if(isWeixinBrowser()) {
+            document.getElementById('browserTip').style.display = 'block';
+            
+            // 点击任意位置关闭提示
+            document.addEventListener('click', function() {
+                document.getElementById('browserTip').style.display = 'none';
+            });
+        }
+    }
+
+
         function navigateToCalendar(month) {
-            // 跳转到该月的日历页面
             window.location.href = `calendar.html?month=${month}`;
         }
-    </script>
 
+        // 添加波纹效果
+        document.querySelectorAll('.month').forEach(button => {
+            button.addEventListener('touchstart', function(e) {
+                const rect = this.getBoundingClientRect();
+                const ripple = document.createElement('div');
+                ripple.className = 'ripple';
+                ripple.style.left = `${e.touches[0].clientX - rect.left}px`;
+                ripple.style.top = `${e.touches[0].clientY - rect.top}px`;
+                this.appendChild(ripple);
+
+                ripple.addEventListener('animationend', () => {
+                    ripple.remove();
+                });
+            });
+        });
+    </script>
 </body>
 </html>
