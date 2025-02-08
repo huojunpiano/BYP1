@@ -316,6 +316,7 @@
     let isPlaying = false;
     let lastPlaybackRate = localStorage.getItem('lastPlaybackRate') || '1.0';
     let currentLoadingTimeout = null;
+    let progressInterval = null;
 
     // 设置标题
     const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
@@ -352,12 +353,10 @@
     }
 
     function updatePlayButton(playing) {
-        // 只有在音频真正可以播放时才显示暂停按钮
         if (currentAudio && currentAudio.readyState >= 3) {
             playPauseBtn.innerHTML = playing ? '❚❚' : '▶';
             isPlaying = playing;
         } else {
-            // 如果音频还没准备好，强制显示播放按钮
             playPauseBtn.innerHTML = '▶';
             isPlaying = false;
         }
@@ -368,6 +367,10 @@
             clearTimeout(currentLoadingTimeout);
             currentLoadingTimeout = null;
         }
+        if (progressInterval) {
+            clearInterval(progressInterval);
+            progressInterval = null;
+        }
         const loadingTipElement = document.querySelector('.loading-tip');
         if (loadingTipElement) {
             loadingTipElement.remove();
@@ -377,28 +380,64 @@
     }
 
     function showLoadingState(dayButton) {
-        clearLoadingState(); // 先清除所有现有的加载状态
+        clearLoadingState();
         
-        // 显示加载动画
         const loadingCircle = document.createElement('div');
         loadingCircle.classList.add('loading');
         dayButton.appendChild(loadingCircle);
 
-        // 显示加载提示
         const loadingTip = document.createElement('div');
         loadingTip.classList.add('loading-tip');
-        loadingTip.textContent = '稍等片刻，正在加载...';
+        loadingTip.textContent = '稍等片刻，正在加载... 0.0%';
         document.body.appendChild(loadingTip);
     }
+
+    function checkAndUpdateProgress() {
+        if (currentAudio && currentAudio.buffered.length > 0) {
+            try {
+                const duration = currentAudio.duration || 0;
+                if (duration > 0) {
+                    let totalBuffered = 0;
+                    for (let i = 0; i < currentAudio.buffered.length; i++) {
+                        totalBuffered += currentAudio.buffered.end(i) - currentAudio.buffered.start(i);
+                    }
+                    
+                    const loadedPercentage = (totalBuffered / duration) * 100;
+                    loadingProgress.style.width = `${loadedPercentage}%`;
+                    updateLoadingProgress(loadedPercentage);
+                }
+            } catch (e) {
+                console.error('Error updating progress:', e);
+            }
+        }
+    }
+
+    function updateLoadingProgress(percent) {
+        const loadingTip = document.querySelector('.loading-tip');
+        if (loadingTip) {
+            const displayPercent = Math.min(percent, 100).toFixed(1);
+            loadingTip.textContent = `稍等片刻，正在加载... ${displayPercent}%`;
+            
+            if (displayPercent >= 100) {
+                setTimeout(() => {
+                    clearLoadingState();
+                    if (currentAudio && !isPlaying) {
+                        currentAudio.play();
+                        updatePlayButton(true);
+                    }
+                }, 500);
+            }
+        }
+    }
+
     function tryPlayAudio() {
         if (currentAudio && currentButton) {
-            if (currentAudio.readyState >= 3) {
+            if (currentAudio.readyState >= 4) {
                 clearLoadingState();
                 currentAudio.play();
                 updatePlayButton(true);
             } else {
                 showLoadingState(currentButton);
-                // 确保在加载状态下显示播放按钮
                 playPauseBtn.innerHTML = '▶';
                 isPlaying = false;
             }
@@ -417,7 +456,6 @@
         loadingProgress.style.width = '0%';
         playingProgress.style.width = '0%';
         timeDisplay.textContent = '00:00 / 00:00';
-        // 确保重置为播放按钮
         playPauseBtn.innerHTML = '▶';
         isPlaying = false;
     }
@@ -437,7 +475,6 @@
 
     // 进度条触摸控制
     let isDragging = false;
-
     progressBar.addEventListener('touchstart', handleTouchProgress);
     progressBar.addEventListener('touchmove', handleTouchProgress);
     progressBar.addEventListener('touchend', () => {
@@ -446,7 +483,7 @@
 
     function handleTouchProgress(e) {
         e.preventDefault();
-        if (currentAudio && currentAudio.readyState >= 3) {
+        if (currentAudio && currentAudio.readyState >= 4) {
             const rect = progressBar.getBoundingClientRect();
             const touch = e.touches[0];
             let pos = (touch.clientX - rect.left) / rect.width;
@@ -482,59 +519,41 @@
         for (let i = 0; i < 6; i++) {
             for (let j = 0; j < 7; j++) {
                 if (i === 0 && j < startDay) {
-                    const emptyCell = document.createElement('div');
-                    calendarContainer.appendChild(emptyCell);
+                    calendarContainer.appendChild(document.createElement('div'));
                 } else if (dayNumber <= daysInMonth) {
                     const dayButton = document.createElement('div');
                     dayButton.classList.add('day');
-                    if (j === 6) {
-                        dayButton.classList.add('saturday');
-                    }
+                    if (j === 6) dayButton.classList.add('saturday');
                     dayButton.textContent = dayNumber;
                     
                     const audioUrl = `https://hjpiano777.us.kg/audio/${year}-${String(month).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}.ogg`;
+                    
                     dayButton.onclick = function() {
                         if (j !== 6) {
                             stopCurrentAudio();
-                            
                             currentButton = dayButton;
                             currentButton.classList.add('playing');
                             
-                            // 显示加载状态
                             showLoadingState(dayButton);
-                            
                             currentAudio = new Audio(audioUrl);
                             
-                            // 强制显示播放按钮，直到音频准备好
-                            playPauseBtn.innerHTML = '▶';
-                            isPlaying = false;
-                            
-                            // 设置加载超时
                             currentLoadingTimeout = setTimeout(() => {
                                 clearLoadingState();
                                 alert('音频加载超时，请重试');
                                 stopCurrentAudio();
                             }, 30000);
-                            
+
                             const activeSpeed = document.querySelector('.speed-btn.active');
                             currentAudio.playbackRate = parseFloat(activeSpeed.dataset.speed);
 
-                            currentAudio.addEventListener('progress', () => {
-                                if (currentAudio.buffered.length > 0) {
-                                    const loadedPercentage = (currentAudio.buffered.end(0) / currentAudio.duration) * 100;
-                                    loadingProgress.style.width = `${loadedPercentage}%`;
-                                }
-                            });
-
-                            currentAudio.addEventListener('canplay', () => {
-                                clearLoadingState();
-                                currentAudio.play();
-                                // 只有在这里才更新为暂停按钮
-                                updatePlayButton(true);
+                            currentAudio.addEventListener('loadedmetadata', () => {
                                 updateTimeDisplay();
+                                checkAndUpdateProgress();
                             });
 
+                            currentAudio.addEventListener('progress', checkAndUpdateProgress);
                             currentAudio.addEventListener('timeupdate', () => {
+                                checkAndUpdateProgress();
                                 if (!isDragging) {
                                     const playedPercentage = (currentAudio.currentTime / currentAudio.duration) * 100;
                                     playingProgress.style.width = `${playedPercentage}%`;
@@ -542,6 +561,7 @@
                                 }
                             });
 
+                            currentAudio.addEventListener('canplaythrough', checkAndUpdateProgress);
                             currentAudio.addEventListener('ended', () => {
                                 updatePlayButton(false);
                                 playingProgress.style.width = '0%';
@@ -555,21 +575,19 @@
                                 stopCurrentAudio();
                             });
 
-                            currentAudio.addEventListener('pause', () => {
-                                updatePlayButton(false);
-                            });
-
+                            currentAudio.addEventListener('pause', () => updatePlayButton(false));
                             currentAudio.addEventListener('play', () => {
-                                if (currentAudio.readyState >= 3) {
+                                if (currentAudio.readyState >= 4) {
                                     clearLoadingState();
                                     updatePlayButton(true);
                                 } else {
                                     showLoadingState(currentButton);
-                                    // 确保在加载状态下显示播放按钮
                                     playPauseBtn.innerHTML = '▶';
                                     isPlaying = false;
                                 }
                             });
+
+                            progressInterval = setInterval(checkAndUpdateProgress, 100);
                         }
                     };
                     calendarContainer.appendChild(dayButton);
@@ -608,6 +626,5 @@
         }
     });
 </script>
-
 </body>
 </html>
