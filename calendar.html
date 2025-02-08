@@ -26,9 +26,10 @@
             padding-bottom: 200px;
         }
 
+        /* 返回按钮样式 */
         .back-btn {
             position: fixed;
-            height: 64px;
+            height: 64px; /* 与标题栏等高 */
             width: 50px;
             left: 0;
             top: 0;
@@ -48,6 +49,7 @@
             background-color: rgba(255, 255, 255, 0.1);
         }
 
+        /* 标题样式 */
         .header {
             background-color: #4CAF50;
             color: white;
@@ -64,10 +66,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding-left: 50px;
-            padding-right: 50px;
+            padding-left: 50px; /* 为返回按钮留出空间 */
+            padding-right: 50px; /* 保持对称 */
         }
 
+        /* 日历容器样式 */
         .calendar-container {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
@@ -80,6 +83,7 @@
             justify-content: center;
         }
 
+        /* 星期名称样式 */
         .day-name {
             font-size: 16px;
             font-weight: bold;
@@ -93,6 +97,7 @@
             text-align: center;
         }
 
+        /* 单个日期按钮样式 */
         .day {
             background-color: white;
             min-width: 45px;
@@ -116,6 +121,7 @@
             transform: scale(0.95);
         }
 
+        /* 周六样式 */
         .saturday {
             background-color: #FFD700;
             color: #4B0082;
@@ -124,6 +130,7 @@
             font-size: 22px;
         }
 
+        /* 加载动画样式 */
         .loading {
             position: absolute;
             width: 25px;
@@ -139,6 +146,7 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* 加载提示文字样式 */
         .loading-tip {
             position: fixed;
             bottom: 180px;
@@ -151,6 +159,8 @@
             font-size: 14px;
             z-index: 1000;
         }
+
+        /* 播放控制区域样式 */
         .playback-control {
             position: fixed;
             bottom: 0;
@@ -342,10 +352,12 @@
     }
 
     function updatePlayButton(playing) {
+        // 只有在音频真正可以播放时才显示暂停按钮
         if (currentAudio && currentAudio.readyState >= 3) {
             playPauseBtn.innerHTML = playing ? '❚❚' : '▶';
             isPlaying = playing;
         } else {
+            // 如果音频还没准备好，强制显示播放按钮
             playPauseBtn.innerHTML = '▶';
             isPlaying = false;
         }
@@ -375,20 +387,20 @@
         // 显示加载提示
         const loadingTip = document.createElement('div');
         loadingTip.classList.add('loading-tip');
-        loadingTip.textContent = '正在加载...';
+        loadingTip.textContent = '稍等片刻，正在加载...';
         document.body.appendChild(loadingTip);
     }
-
     function tryPlayAudio() {
         if (currentAudio && currentButton) {
             if (currentAudio.readyState >= 3) {
-                // 音频已经准备好了
                 clearLoadingState();
                 currentAudio.play();
                 updatePlayButton(true);
             } else {
-                // 音频还没准备好，显示加载状态
                 showLoadingState(currentButton);
+                // 确保在加载状态下显示播放按钮
+                playPauseBtn.innerHTML = '▶';
+                isPlaying = false;
             }
         }
     }
@@ -405,6 +417,7 @@
         loadingProgress.style.width = '0%';
         playingProgress.style.width = '0%';
         timeDisplay.textContent = '00:00 / 00:00';
+        // 确保重置为播放按钮
         playPauseBtn.innerHTML = '▶';
         isPlaying = false;
     }
@@ -492,12 +505,16 @@
                             
                             currentAudio = new Audio(audioUrl);
                             
+                            // 强制显示播放按钮，直到音频准备好
+                            playPauseBtn.innerHTML = '▶';
+                            isPlaying = false;
+                            
                             // 设置加载超时
                             currentLoadingTimeout = setTimeout(() => {
                                 clearLoadingState();
-                                alert('加载超时，请重试');
+                                alert('音频加载超时，请重试');
                                 stopCurrentAudio();
-                            }, 30000); // 30秒超时
+                            }, 30000);
                             
                             const activeSpeed = document.querySelector('.speed-btn.active');
                             currentAudio.playbackRate = parseFloat(activeSpeed.dataset.speed);
@@ -512,6 +529,7 @@
                             currentAudio.addEventListener('canplay', () => {
                                 clearLoadingState();
                                 currentAudio.play();
+                                // 只有在这里才更新为暂停按钮
                                 updatePlayButton(true);
                                 updateTimeDisplay();
                             });
@@ -533,7 +551,7 @@
 
                             currentAudio.addEventListener('error', () => {
                                 clearLoadingState();
-                                alert('加载失败，请重试');
+                                alert('音频加载失败，请稍后重试');
                                 stopCurrentAudio();
                             });
 
@@ -547,6 +565,9 @@
                                     updatePlayButton(true);
                                 } else {
                                     showLoadingState(currentButton);
+                                    // 确保在加载状态下显示播放按钮
+                                    playPauseBtn.innerHTML = '▶';
+                                    isPlaying = false;
                                 }
                             });
                         }
@@ -587,5 +608,6 @@
         }
     });
 </script>
+
 </body>
 </html>
